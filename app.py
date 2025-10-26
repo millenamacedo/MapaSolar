@@ -1,8 +1,8 @@
-
 import streamlit as st
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
+from branca.element import Template, MacroElement
 
 st.set_page_config(page_title="Mapa de Irradiação Solar", layout="wide")
 st.title("☀️ Mapa Interativo - Irradiação Solar Anual")
@@ -23,7 +23,6 @@ if uploaded_file is not None:
         st.dataframe(df.head())
 
         if all(col in df.columns for col in ["LON", "LAT", "ANNUAL"]):
-
 
             # --- Cria o mapa ---
             m = folium.Map(location=[df["LAT"].mean(), df["LON"].mean()], zoom_start=5)
@@ -58,8 +57,9 @@ if uploaded_file is not None:
                     popup=f"Irradiação: {row['ANNUAL']} kWh/m²/ano"
                 ).add_to(m)
 
-            # --- Legenda personalizada (fonte preta e título azul escuro) ---
-            legend_html = '''
+            # --- Legenda incorporada no mapa ---
+            legend_template = """
+            {% macro html(this, kwargs) %}
             <div style="
                 position: fixed;
                 bottom: 50px;
@@ -71,7 +71,7 @@ if uploaded_file is not None:
                 font-size:14px;
                 padding: 10px;
                 border-radius: 8px;
-                color: black;  /* Fonte preta */
+                color: black;
                 box-shadow: 2px 2px 6px rgba(0,0,0,0.2);
             ">
             <b style="color:#003366;">Legenda - Irradiação (kWh/m²/ano)</b><br><br>
@@ -97,8 +97,12 @@ if uploaded_file is not None:
                 <div>&ge; 4.600</div>
             </div>
             </div>
-            '''
-            m.get_root().html.add_child(folium.Element(legend_html))
+            {% endmacro %}
+            """
+
+            legend = MacroElement()
+            legend._template = Template(legend_template)
+            m.get_root().add_child(legend)
 
             # --- Exibe o mapa ---
             st.subheader("🗺️ Mapa de Irradiação Solar")
